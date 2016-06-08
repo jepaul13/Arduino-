@@ -1,30 +1,31 @@
+var Raspi = require('raspi-io')
 var meshblu = require('meshblu')
 var meshbluJSON = require('./meshblu.json')
 var five = require("johnny-five")
 
 // MESSAGE_SCHEMA defines what messages your device will be able to send from inside Octoblu
 // currently this schema will allow you to toggle a property labeled reset inside Octoblu
-var MESSAGE_SCHEMA = {
-  "type": "object",
-  "properties": {
-    "reset": {
-      "type": "boolean",
-      "default": false
-    }
-  }
-}
+//var MESSAGE_SCHEMA = {
+//  "type": "object",
+//  "properties": {
+//    "reset": {
+//      "type": "boolean",
+//      "default": false
+//    }
+//  }
+//}
 
 // OPTIONS_SCHEMA defines what properties you can configure from your device's page in Octoblu
 // currently this schema will allow you to set an integer in the device's page in Octoblu
-var OPTIONS_SCHEMA = {
-  "type": "object",
-  "properties": {
-    "myFavoriteNumber": {
-      "type": "integer",
-      "default": 4
-    }
-  }
-}
+//var OPTIONS_SCHEMA = {
+//  "type": "object",
+//  "properties": {
+//    "myFavoriteNumber": {
+//      "type": "integer",
+//      "default": 4
+//    }
+//  }
+//}
 
 function sendMessage(message){
   conn.message({
@@ -46,41 +47,37 @@ conn.on('notReady', function(data){
 })
 
 conn.on('config', function(device){
-  myFavoriteNumber = device.options.myFavoriteNumber
+  // myFavoriteNumber = device.options.myFavoriteNumber
 })
 
-var edison = new five.Board({
-  port: "/dev/ttyMFD1"
-})
+var Pi = new five.Board({
+  io: new Raspi()
+});
 
 conn.on('ready', function(data){
   console.log('UUID AUTHENTICATED!', data)
 
   conn.whoami({}, function(device){
-    myFavoriteNumber = device.options.myFavoriteNumber
+    // myFavoriteNumber = device.options.myFavoriteNumber
   })
 
   conn.update({
     "uuid": uuid,
-    "messageSchema": MESSAGE_SCHEMA,
-    "optionsSchema": OPTIONS_SCHEMA,
-    "type": "device:custom-device"
-    // "logoUrl": "link to your image"
+//    "messageSchema": MESSAGE_SCHEMA,
+//    "optionsSchema": OPTIONS_SCHEMA,
+    "type": "device:raspberry-pi-custom",
+    "logoUrl": "https://s3-us-west-2.amazonaws.com/octoblu-icons/device/mailbox.png"
   })
+})
+ 
+Pi.on("ready", function () {
+  console.log("pi ready");
+  var ir = new five.Sensor.Digital(3);
 
-  edison.on("ready", function() {
-    console.log('edison ready')
-
-    var zAccel = new five.Sensor.Analog(0)
-
-    conn.on('message', function(message){
-      if (message.reset == true) {
-        console.log('reset')
-      }
-    })
-
-    zAccel.on("change", function() {
-      console.log("Z accelerometer: " + this.value)
-    })
+  ir.on("change", function() {
+    if (this.value == 1) {
+      console.log('Tripped\n');
+      sendMessage({tripped: true});
+    }
   })
 })
