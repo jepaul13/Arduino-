@@ -7,7 +7,15 @@ var five = require("johnny-five")
 var MESSAGE_SCHEMA = {
   "type": "object",
   "properties": {
-    "reset": {
+    "greenLed": {
+      "type": "boolean",
+      "default": false
+    },
+    "blueLed": {
+      "type": "boolean",
+      "default": false
+    },
+    "redLed": {
       "type": "boolean",
       "default": false
     }
@@ -16,15 +24,15 @@ var MESSAGE_SCHEMA = {
 
 // OPTIONS_SCHEMA defines what properties you can configure from your device's page in Octoblu
 // currently this schema will allow you to set an integer in the device's page in Octoblu
-var OPTIONS_SCHEMA = {
-  "type": "object",
-  "properties": {
-    "myFavoriteNumber": {
-      "type": "integer",
-      "default": 4
-    }
-  }
-}
+// var OPTIONS_SCHEMA = {
+//   "type": "object",
+//   "properties": {
+//     "myFavoriteNumber": {
+//       "type": "integer",
+//       "default": 4
+//     }
+//   }
+// }
 
 function sendMessage(message){
   conn.message({
@@ -46,41 +54,52 @@ conn.on('notReady', function(data){
 })
 
 conn.on('config', function(device){
-  myFavoriteNumber = device.options.myFavoriteNumber
+  // myFavoriteNumber = device.options.myFavoriteNumber
 })
 
-var edison = new five.Board({
-  port: "/dev/ttyMFD1"
-})
+var arduino = new five.Board()
 
 conn.on('ready', function(data){
   console.log('UUID AUTHENTICATED!', data)
 
   conn.whoami({}, function(device){
-    myFavoriteNumber = device.options.myFavoriteNumber
+    // myFavoriteNumber = device.options.myFavoriteNumber
   })
 
   conn.update({
     "uuid": uuid,
     "messageSchema": MESSAGE_SCHEMA,
-    "optionsSchema": OPTIONS_SCHEMA,
-    "type": "device:custom-device"
+    // "optionsSchema": OPTIONS_SCHEMA,
+    "type": "device:custom-arduino"
     // "logoUrl": "link to your image"
   })
 
-  edison.on("ready", function() {
-    console.log('edison ready')
+  arduino.on("ready", function() {
+    console.log('arduino ready')
 
-    var zAccel = new five.Sensor.Analog(0)
+    var green = new five.Pin(11)
+    var blue = new five.Pin(10)
+    var red = new five.Pin(9)
 
     conn.on('message', function(message){
-      if (message.reset == true) {
-        console.log('reset')
+      if (message.payload.greenLed == true) {
+        green.high()
       }
-    })
-
-    zAccel.on("change", function() {
-      console.log("Z accelerometer: " + this.value)
+      if (message.payload.greenLed == false) {
+        green.low()
+      }
+      if (message.payload.blueLed == true) {
+        blue.high()
+      }
+      if (message.payload.blueLed == false) {
+        blue.low()
+      }
+      if (message.payload.redLed == true) {
+        red.high()
+      }
+      if (message.payload.redLed == false) {
+        red.low()
+      }
     })
   })
 })
