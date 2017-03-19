@@ -1,0 +1,3 @@
+npm install --global meshblu-util
+meshblu-util register -o > meshblu.json
+meshblu-util claim
